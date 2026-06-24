@@ -3,8 +3,17 @@ import axios from "axios";
 import { API_URL } from "../configuration";
 import type { Color, GameAction, GameState } from "./api.types";
 
-type Player = "HUMAN" | "RANDOM" | "CATANATRON";
+type Player = "HUMAN" | "RANDOM" | "CATANATRON" | `MODEL:${string}`;
 export type StateIndex = number | `${number}` | "latest";
+
+export async function getModels(): Promise<string[]> {
+  try {
+    const response = await axios.get<string[]>(API_URL + "/api/models");
+    return response.data;
+  } catch {
+    return [];
+  }
+}
 
 export async function createGame(players: Player[]) {
   const response = await axios.post(API_URL + "/api/games", { players });

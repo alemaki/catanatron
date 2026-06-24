@@ -1,28 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@mui/material";
+import {
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+} from "@mui/material";
 import { GridLoader } from "react-spinners";
-import { createGame } from "../utils/apiClient";
+import { createGame, getModels } from "../utils/apiClient";
 
 import "./HomePage.scss";
 
-// Enum of Type of Game Mode
 const GameMode = Object.freeze({
   HUMAN_VS_CATANATRON: "HUMAN_VS_CATANATRON",
+  HUMAN_VS_MODEL: "HUMAN_VS_MODEL",
   RANDOM_BOTS: "RANDOM_BOTS",
   CATANATRON_BOTS: "CATANATRON_BOTS",
 });
 
-type GameModeType = typeof GameMode[keyof typeof GameMode]
+type GameModeType = (typeof GameMode)[keyof typeof GameMode];
 
-function getPlayers(gameMode: GameModeType, numPlayers: number) {
+function getPlayers(
+  gameMode: GameModeType,
+  numPlayers: number,
+  modelName?: string
+) {
   switch (gameMode) {
-    case GameMode.HUMAN_VS_CATANATRON:
+    case GameMode.HUMAN_VS_CATANATRON: {
       const players = ["HUMAN"];
-      for (let i = 1; i < numPlayers; i++) {
-        players.push("CATANATRON");
-      }
+      for (let i = 1; i < numPlayers; i++) players.push("CATANATRON");
       return players;
+    }
+    case GameMode.HUMAN_VS_MODEL:
+      return ["HUMAN", `MODEL:${modelName}`];
     case GameMode.RANDOM_BOTS:
       return Array(numPlayers).fill("RANDOM");
     case GameMode.CATANATRON_BOTS:
@@ -35,11 +46,20 @@ function getPlayers(gameMode: GameModeType, numPlayers: number) {
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [numPlayers, setNumPlayers] = useState(2);
+  const [models, setModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getModels().then((names) => {
+      setModels(names);
+      if (names.length > 0) setSelectedModel(names[0]);
+    });
+  }, []);
 
   const handleCreateGame = async (gameMode: GameModeType) => {
     setLoading(true);
-    const players = getPlayers(gameMode, numPlayers);
+    const players = getPlayers(gameMode, numPlayers, selectedModel);
     const gameId = await createGame(players);
     setLoading(false);
     navigate("/games/" + gameId);
@@ -80,6 +100,41 @@ export default function HomePage() {
             >
               Play against Catanatron
             </Button>
+            {models.length > 0 && (
+              <>
+                <FormControl
+                  size="small"
+                  sx={{ minWidth: 260, marginBottom: "8px" }}
+                >
+                  <InputLabel sx={{ color: "white" }}>Model</InputLabel>
+                  <Select
+                    value={selectedModel}
+                    label="Model"
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    sx={{
+                      color: "white",
+                      ".MuiOutlinedInput-notchedOutline": {
+                        borderColor: "rgba(255,255,255,0.5)",
+                      },
+                      ".MuiSvgIcon-root": { color: "white" },
+                    }}
+                  >
+                    {models.map((name) => (
+                      <MenuItem key={name} value={name}>
+                        {name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleCreateGame(GameMode.HUMAN_VS_MODEL)}
+                >
+                  Play vs My Model
+                </Button>
+              </>
+            )}
             <Button
               variant="contained"
               color="secondary"
@@ -96,11 +151,7 @@ export default function HomePage() {
             </Button>
           </>
         ) : (
-          <GridLoader
-            className="loader"
-            color="#ffffff"
-            size={60}
-          />
+          <GridLoader className="loader" color="#ffffff" size={60} />
         )}
       </div>
     </div>

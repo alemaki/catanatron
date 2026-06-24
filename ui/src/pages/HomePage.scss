@@ -22,7 +22,7 @@
   }
 
   .switchable {
-    height: 224px; // NOTE: Fixed to avoid loading jump
+    min-height: 224px; // Expands when model selector is visible
     display: flex;
     flex-direction: column;
     justify-content: center;
